@@ -1,0 +1,24 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+#include <ntddk.h>
+
+struct STATS
+{
+	long long TotalRead;
+	long long TotalWrite;
+};
+
+#pragma region Control Codes for DEVICE_IO_CONTROL
+
+// Device Type
+#define DEVICE_MARFIELD 0x8555
+
+// IOCTL CODES / I/O Control Codes
+#define IOCTL_GET_STATS   CTL_CODE(DEVICE_MARFIELD, 0x800, METHOD_BUFFERED, FILE_READ_ACCESS)
+#define IOCTL_RESET_STATS CTL_CODE(DEVICE_MARFIELD, 0x801, METHOD_NEITHER, FILE_WRITE_ACCESS)
+#define IOCTL_SAY_HELLO   CTL_CODE(DEVICE_MARFIELD, 0x802, METHOD_BUFFERED, FILE_READ_ACCESS)
+
+#pragma endregion
+
+#endif
