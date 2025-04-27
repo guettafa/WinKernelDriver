@@ -5,13 +5,19 @@
 
 namespace Routine
 {
-	extern long long g_NumWritten;
-	extern long long g_NumRead;
+	extern INT64 g_NumWritten;
+	extern INT64 g_NumRead;
 
 	struct REQUEST
 	{
 		wchar_t* message;
 		wchar_t* author;
+	};
+
+	struct STATS
+	{
+		INT64 TotalRead;
+		INT64 TotalWrite;
 	};
 
 	NTSTATUS CompleteRequest(

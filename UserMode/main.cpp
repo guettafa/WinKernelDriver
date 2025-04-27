@@ -22,8 +22,8 @@ struct REQUEST
 
 struct STATS
 {
-	long long TotalRead;
-	long long TotalWrite;
+	INT64 TotalRead;
+	INT64 TotalWrite;
 };
 
 int main()
@@ -39,12 +39,14 @@ int main()
 	}
 
 	DWORD bytesWritten = 0;
-	BOOL status		   = true;
+	BOOL  status	   = TRUE;
 
-#pragma region Write
-	REQUEST req{};
-	req.message = (wchar_t*)L"Hello from Client";
-	req.author  = (wchar_t*)L"Client";
+	// WRITE - Send REQUEST struct from User-Mode to the driver
+	REQUEST req
+	{
+		(PWCHAR)L"Hello from Client",
+		(PWCHAR)L"Client"
+	};
 
 	status = WriteFile(hDevice, &req, sizeof(req), &bytesWritten, nullptr);
 	if (!status)
@@ -52,10 +54,28 @@ int main()
 		std::printf("Cannot Write to Device - Error : %d\n", GetLastError());
 		return 1;
 	}
-	std::printf("Sent Write REQUEST to Driver Successfully\n");
-#pragma endregion
 
-#pragma region Get Stats from Driver
+	// READ - Receiving a buffer filled with integers from Kernel-Mode
+	int buffer[100]{};
+	status = ReadFile(hDevice, buffer, sizeof(buffer), &bytesWritten, nullptr);
+	if (!status)
+	{
+		std::printf("Cannot Read from Device - Error : %d\n", GetLastError());
+		return 1;
+	}
+	std::cout << "AM HERE : " << buffer[10] << std::endl; // should be 10
+
+	// READ - Receiving a string from Kernel-Mode using IOCTL Code
+	wchar_t msgFromDriver[100]{};
+	status = DeviceIoControl(hDevice, IOCTL_SAY_HELLO, nullptr, 0, msgFromDriver, sizeof(msgFromDriver), &bytesWritten, nullptr);
+	if (!status)
+	{
+		std::printf("Cannot request with IOCTL SAY HELLO Code - Error : %d\n", GetLastError());
+		return 1;
+	}
+	std::printf("Message from Driver : %ls\n", msgFromDriver);
+
+	// READ - Receiving a struct with driver statistics from Kernel-Mode using IOCTL Code
 	STATS driverStats{};
 	status = DeviceIoControl(hDevice, IOCTL_GET_STATS, nullptr, 0, &driverStats, sizeof(STATS), &bytesWritten, nullptr);
 	if (!status)
@@ -63,30 +83,7 @@ int main()
 		std::printf("Cannot request with IOCTL GET STATS Code - Error : %d\n", GetLastError());
 		return 1;
 	}
-	std::printf("Read : %lld / Write : %lld\n", driverStats.TotalRead, driverStats.TotalWrite);
-
-	wchar_t msgFromDriver[150];
-	status = DeviceIoControl(hDevice, IOCTL_SAY_HELLO, nullptr, 0, msgFromDriver, sizeof(msgFromDriver), &bytesWritten, nullptr);
-	if (!status)
-	{
-		std::printf("Cannot request with IOCTL SAY HELLO Code - Error : %d\n", GetLastError());
-		return 1;
-	}
-	std::printf("Message : %ls\n", msgFromDriver);
-
-#pragma endregion
-
-#pragma region Read
-	int buffer[100];
-
-	status = ReadFile(hDevice, buffer, sizeof(buffer), &bytesWritten, nullptr);
-	if (!status)
-	{
-		std::printf("Cannot Read from Device - Error : %d\n", GetLastError());
-		return 1;
-	}
-	std::cout << "AM HERE : " << buffer[10] << std::endl;
-#pragma endregion
+	std::printf("%lld bytes read / %lld bytes written\n", driverStats.TotalRead, driverStats.TotalWrite);
 
 	CloseHandle(hDevice);
 	

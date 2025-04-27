@@ -4,8 +4,8 @@
 
 namespace Routine
 {
-	long long g_NumWritten = 0;
-	long long g_NumRead	   = 0;
+	INT64 g_NumWritten = 0;
+	INT64 g_NumRead	   = 0;
 }
 
 NTSTATUS Routine::CompleteRequest(
@@ -35,8 +35,6 @@ NTSTATUS Routine::ReadRtn(
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 
-	ReadAcquire64(&g_NumRead);
-
 	NTSTATUS retStatus = STATUS_SUCCESS;
 	ULONG	 information = 0;
 
@@ -44,6 +42,8 @@ NTSTATUS Routine::ReadRtn(
 	{
 		PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 		ULONG lenBuff = stack->Parameters.Read.Length;
+		
+		InterlockedAdd64(&g_NumRead, lenBuff);
 
 		if (lenBuff < sizeof(100) || lenBuff == 0)
 		{
@@ -62,7 +62,7 @@ NTSTATUS Routine::ReadRtn(
 		NT_ASSERT(Irp->MdlAddress);
 		
 		auto cBuff = static_cast<int*>(buffer);
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < 100; i++) // just for testing
 		{
 			cBuff[i] = i;
 		}
@@ -92,15 +92,15 @@ NTSTATUS Routine::WriteRtn(
 
 		InterlockedAdd64(&g_NumWritten, lenBuff); // avoiding data races
 		
-		if (lenBuff < sizeof(REQUEST) || lenBuff == 0)
+		if (lenBuff < sizeof(REQUEST))
 		{
 			retStatus = STATUS_BUFFER_TOO_SMALL;
 			LOG_ERR("Buff is too small\n");
 			break;
 		}
 
-		PVOID buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-		if (!buffer)
+		auto request = static_cast<REQUEST*>(MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority));
+		if (!request)
 		{
 			retStatus = STATUS_INSUFFICIENT_RESOURCES;
 			LOG_ERR("Can't map memory descriptor list\n");
@@ -108,7 +108,6 @@ NTSTATUS Routine::WriteRtn(
 		}
 		NT_ASSERT(Irp->MdlAddress);
 
-		auto request = static_cast<REQUEST*>(buffer);
 		LOG_INFO("Author : %ls - Message : %ls\n", request->author, request->message);
 
 		information = lenBuff;
@@ -167,27 +166,26 @@ NTSTATUS Routine::DeviceControlRtn(
 		{
 			ULONG outBuffLen = deviceIoControl.OutputBufferLength;
 
-			if (outBuffLen < 300)
+			if (outBuffLen < 200)
 			{
 				retStatus = STATUS_BUFFER_TOO_SMALL;
 				break;
 			}
 			
-			auto msg = static_cast<wchar_t*>(Irp->AssociatedIrp.SystemBuffer);
-			if (msg == nullptr)
+			auto outBuff = static_cast<wchar_t*>(Irp->AssociatedIrp.SystemBuffer);
+			if (outBuff == nullptr)
 			{
 				retStatus = STATUS_INVALID_PARAMETER;
 				break;
 			}
 
-			wchar_t* message = L"This string is from Device Driver";
+			wchar_t* driverMsg = L"This string is from Device Driver";
 
-			size_t sizeOfMessage = wcsnlen_s(message, outBuffLen);
-			LOG_INFO("Size of message : %d\n",sizeOfMessage);
+			size_t lenMsg = wcsnlen_s(driverMsg, outBuffLen);
 
-			RtlCopyBytes(msg, message, outBuffLen);
+			RtlCopyBytes(outBuff, driverMsg, outBuffLen);
 
-			information = (ULONG)(wcslen(message) * 2) + 2; // wcslen dont count the null byte and only count each char
+			information = (ULONG)(lenMsg * 2) + 2;
  
 			retStatus = STATUS_SUCCESS;
 			break;

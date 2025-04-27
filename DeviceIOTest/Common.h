@@ -3,11 +3,7 @@
 
 #include <ntddk.h>
 
-struct STATS
-{
-	long long TotalRead;
-	long long TotalWrite;
-};
+
 
 #pragma region Control Codes for DEVICE_IO_CONTROL
 
