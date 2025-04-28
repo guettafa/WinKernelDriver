@@ -8,6 +8,7 @@ namespace Routine
 	INT64 g_NumRead	   = 0;
 }
 
+// Just to Complete the IRP
 NTSTATUS Routine::CompleteRequest(
 	_In_    NTSTATUS retStatus,
 	_In_    ULONG information,
@@ -21,6 +22,7 @@ NTSTATUS Routine::CompleteRequest(
 	return retStatus;
 }
 
+// by calling CreateFile to open a handle on the device
 NTSTATUS Routine::CreateCloseRtn(
 	_In_	PDEVICE_OBJECT DeviceObject,
 	_Inout_ PIRP Irp)
@@ -29,6 +31,7 @@ NTSTATUS Routine::CreateCloseRtn(
 	return CompleteRequest(STATUS_SUCCESS, 0, Irp);
 }
 
+// by calling ReadFile
 NTSTATUS Routine::ReadRtn(
 	_In_	PDEVICE_OBJECT DeviceObject,
 	_Inout_ PIRP Irp)
@@ -76,6 +79,7 @@ NTSTATUS Routine::ReadRtn(
 	return CompleteRequest(retStatus, information, Irp);
 }
 
+// by calling WriteFile
 NTSTATUS Routine::WriteRtn(
 	_In_	PDEVICE_OBJECT DeviceObject, 
 	_Inout_ PIRP Irp)
@@ -117,6 +121,7 @@ NTSTATUS Routine::WriteRtn(
 	return CompleteRequest(retStatus, information, Irp);
 }
 
+// By calling DeviceIoControl
 NTSTATUS Routine::DeviceControlRtn(
 	_In_	PDEVICE_OBJECT DeviceObject,
 	_Inout_ PIRP Irp)
@@ -124,11 +129,10 @@ NTSTATUS Routine::DeviceControlRtn(
 	UNREFERENCED_PARAMETER(DeviceObject);
 
 	NTSTATUS retStatus = STATUS_INVALID_DEVICE_REQUEST;
+	ULONG information = 0;
 
 	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 	auto deviceIoControl = stack->Parameters.DeviceIoControl;
-	
-	ULONG information = 0;
 
 	switch (deviceIoControl.IoControlCode)
 	{
@@ -158,6 +162,8 @@ NTSTATUS Routine::DeviceControlRtn(
 		{
 			g_NumRead	 = 0; 
 			g_NumWritten = 0;
+
+			LOG_INFO("RESET CALLED : %d, %d\n", g_NumRead, g_NumWritten);
 
 			retStatus	 = STATUS_SUCCESS;
 			break;

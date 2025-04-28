@@ -56,14 +56,14 @@ int main()
 	}
 
 	// READ - Receiving a buffer filled with integers from Kernel-Mode
-	int buffer[100]{};
-	status = ReadFile(hDevice, buffer, sizeof(buffer), &bytesWritten, nullptr);
+	int someIntegerBuffer[100]{};
+	status = ReadFile(hDevice, someIntegerBuffer, sizeof(someIntegerBuffer), &bytesWritten, nullptr);
 	if (!status)
 	{
 		std::printf("Cannot Read from Device - Error : %d\n", GetLastError());
 		return 1;
 	}
-	std::cout << "AM HERE : " << buffer[10] << std::endl; // should be 10
+	std::cout << "AM HERE : " << someIntegerBuffer[10] << std::endl; // should be 10
 
 	// READ - Receiving a string from Kernel-Mode using IOCTL Code
 	wchar_t msgFromDriver[100]{};
@@ -84,6 +84,19 @@ int main()
 		return 1;
 	}
 	std::printf("%lld bytes read / %lld bytes written\n", driverStats.TotalRead, driverStats.TotalWrite);
+
+	// WRITE - Reset driver statistics
+	status = DeviceIoControl(hDevice, IOCTL_RESET_STATS, nullptr, 0, nullptr, 0, &bytesWritten, nullptr);
+	if (!status)
+	{
+		std::printf("Cannot request with IOCTL RESET STATS Code - Error : %d\n", GetLastError());
+		return 1;
+	}
+
+	// Just checking driver stats again
+	STATS driverStatsCheck{};
+	DeviceIoControl(hDevice, IOCTL_GET_STATS, nullptr, 0, &driverStatsCheck, sizeof(STATS), &bytesWritten, nullptr);
+	std::printf("After reset : %lld bytes read / %lld bytes written\n", driverStatsCheck.TotalRead, driverStatsCheck.TotalWrite);
 
 	CloseHandle(hDevice);
 	
