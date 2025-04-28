@@ -165,7 +165,6 @@ NTSTATUS Routine::DeviceControlRtn(
 		case IOCTL_SAY_HELLO:
 		{
 			ULONG outBuffLen = deviceIoControl.OutputBufferLength;
-
 			if (outBuffLen < 200)
 			{
 				retStatus = STATUS_BUFFER_TOO_SMALL;
