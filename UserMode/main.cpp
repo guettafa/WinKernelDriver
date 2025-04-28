@@ -39,7 +39,7 @@ int main()
 	}
 
 	DWORD bytesWritten = 0;
-	BOOL  status	   = TRUE;
+	BOOL  status = TRUE;
 
 	// WRITE - Send REQUEST struct from User-Mode to the driver
 	REQUEST req
@@ -99,6 +99,6 @@ int main()
 	std::printf("After reset : %lld bytes read / %lld bytes written\n", driverStatsCheck.TotalRead, driverStatsCheck.TotalWrite);
 
 	CloseHandle(hDevice);
-	
+
 	return 0;
 }

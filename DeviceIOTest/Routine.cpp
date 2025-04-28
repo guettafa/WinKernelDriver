@@ -5,7 +5,7 @@
 namespace Routine
 {
 	INT64 g_NumWritten = 0;
-	INT64 g_NumRead	   = 0;
+	INT64 g_NumRead = 0;
 }
 
 // Just to Complete the IRP
@@ -45,14 +45,14 @@ NTSTATUS Routine::ReadRtn(
 	{
 		PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
 		ULONG lenBuff = stack->Parameters.Read.Length;
-		
+
 		InterlockedAdd64(&g_NumRead, lenBuff);
 
 		if (lenBuff < sizeof(100) || lenBuff == 0)
 		{
 			retStatus = STATUS_BUFFER_TOO_SMALL;
 			LOG_ERR("Buff is too small\n")
-			break;
+				break;
 		}
 
 		auto buffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
@@ -63,7 +63,7 @@ NTSTATUS Routine::ReadRtn(
 			break;
 		}
 		NT_ASSERT(Irp->MdlAddress);
-		
+
 		auto cBuff = static_cast<int*>(buffer);
 		for (int i = 0; i < 100; i++) // just for testing
 		{
@@ -81,7 +81,7 @@ NTSTATUS Routine::ReadRtn(
 
 // by calling WriteFile
 NTSTATUS Routine::WriteRtn(
-	_In_	PDEVICE_OBJECT DeviceObject, 
+	_In_	PDEVICE_OBJECT DeviceObject,
 	_Inout_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
@@ -95,7 +95,7 @@ NTSTATUS Routine::WriteRtn(
 		ULONG lenBuff = stack->Parameters.Write.Length;
 
 		InterlockedAdd64(&g_NumWritten, lenBuff); // avoiding data races
-		
+
 		if (lenBuff < sizeof(REQUEST))
 		{
 			retStatus = STATUS_BUFFER_TOO_SMALL;
@@ -117,7 +117,7 @@ NTSTATUS Routine::WriteRtn(
 		information = lenBuff;
 
 	} while (false);
-	
+
 	return CompleteRequest(retStatus, information, Irp);
 }
 
@@ -140,32 +140,32 @@ NTSTATUS Routine::DeviceControlRtn(
 		{
 			if (deviceIoControl.OutputBufferLength < sizeof(STATS))
 			{
-				retStatus = STATUS_BUFFER_TOO_SMALL; 
+				retStatus = STATUS_BUFFER_TOO_SMALL;
 				break;
 			}
 
 			auto stats = static_cast<STATS*>(Irp->AssociatedIrp.SystemBuffer);
 			if (stats == nullptr)
 			{
-				retStatus = STATUS_INVALID_PARAMETER; 
+				retStatus = STATUS_INVALID_PARAMETER;
 				break;
 			}
 
-			stats->TotalRead	= g_NumRead;
-			stats->TotalWrite	= g_NumWritten;
-			information			= sizeof(STATS);
+			stats->TotalRead = g_NumRead;
+			stats->TotalWrite = g_NumWritten;
+			information = sizeof(STATS);
 
-			retStatus			= STATUS_SUCCESS;
+			retStatus = STATUS_SUCCESS;
 			break;
 		}
 		case IOCTL_RESET_STATS:
 		{
-			g_NumRead	 = 0; 
+			g_NumRead = 0;
 			g_NumWritten = 0;
 
 			LOG_INFO("RESET CALLED : %d, %d\n", g_NumRead, g_NumWritten);
 
-			retStatus	 = STATUS_SUCCESS;
+			retStatus = STATUS_SUCCESS;
 			break;
 		}
 		case IOCTL_SAY_HELLO:
@@ -176,7 +176,7 @@ NTSTATUS Routine::DeviceControlRtn(
 				retStatus = STATUS_BUFFER_TOO_SMALL;
 				break;
 			}
-			
+
 			auto outBuff = static_cast<wchar_t*>(Irp->AssociatedIrp.SystemBuffer);
 			if (outBuff == nullptr)
 			{
@@ -191,7 +191,7 @@ NTSTATUS Routine::DeviceControlRtn(
 			RtlCopyBytes(outBuff, driverMsg, outBuffLen);
 
 			information = (ULONG)(lenMsg * 2) + 2;
- 
+
 			retStatus = STATUS_SUCCESS;
 			break;
 		}
